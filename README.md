@@ -23,14 +23,22 @@ Search story.json for `ART:`, `MUSIC:`, `SFX:` and `TODO:` to find every placeho
 | `bg/festival.png` | placeholder | Chapter 4 ballroom once the bonfire is lit |
 | `bg/ending_normal.png`, `bg/ending_true.png`, `bg/game_over_goat.png`, `bg/game_over_rep.png` | placeholder | Endings and deaths |
 | `sprites/claire_neutral / happy / laugh / wtf / frustrated / car_crash.png` | **yours** | Claire (left) |
-| `sprites/excelsior.png` | **yours** | Goat (right) |
-| `sprites/excelsior_fire.png` | copy of excelsior.png | Goat on fire |
+| `sprites/excelsior_norm / slant / front / front_fire.png` | **yours** | Goat (right): norm = default, slant = about to do something dumb, front = the payoff (reveal stare, prince headbutt, spa door), front_fire = on fire |
 | `music/20260924 - gtr.mp3` | **yours** | Title and all chapters for now (search `MUSIC: TODO`) |
 | `sfx/*.wav` | placeholder | door_burst, bonk, crash, fire, knock, charge, applause, scream, whoosh, splash |
 
-The other characters (knights, doctor, friends, servant, maid, prince, nobles) are name-only, with no sprite. Stats start at Time 3 and Reputation 3, which lets 6 of the 16 paths survive. Change `"stats"` to rebalance.
+The other characters (knights, doctor, friends, servant, maid, prince, nobles) are name-only, with no sprite. Stats start at Time 4 and Reputation 4. A stat reaching 0 ends the game, and 6 of the 16 paths survive. Change `"stats"` to rebalance.
 
 **True ending:** a placeholder in the `finale` scene. Every choice already sets a flag (`p1_trust`, `p1_yeet`, `p2_block`, `p2_yank`, `p3_maids`, `p3_save`, `p4_dive`, `p4_let`). List the ones required, and that's the only edit.
+
+## Game feel
+
+- **Typewriter text.** The first click shows the whole line, the next click advances. Speed: `TEXT_SPEED` at the top of main.py.
+- **Fast-forward:** hold Tab or Ctrl to zip through text (stops at choices).
+- **Speaker focus:** sprites of characters who are not talking dim. This works by name: a sprite file must start with the speaker's name without spaces ("Friend 1" → `friend1.png`, "Knight 2" → `knight.png`, "Claire (thinking)" → `claire_*.png`).
+- **Stat popups:** after a choice, "+1 Time / −1 Reputation" floats up and the changed stats turn green or red.
+- **Fades:** the screen fades through black on chapter cards, cutscenes, endings, any background change, starting a game and returning to the title. Clicks are ignored mid-fade. Put `"fade": true` on a step to force one (for example the script's `[FADE OUT.]`), or `"fade": false` to turn one off. Length: `FADE_TIME` at the top of main.py.
+- **Shake and flash:** a step that plays a sound in `SHAKE_SFX` gives a small shake (`SHAKE_PIXELS`, `SHAKE_TIME`), and `fire.wav` flashes orange (both lists are at the top of main.py). Any step can also say `"shake": true` or `"flash": [255, 255, 255]` itself.
 
 ## Tutorial: learn it by playing (tutorial.json)
 
@@ -43,8 +51,8 @@ The other characters (knights, doctor, friends, servant, maid, prince, nobles) a
 |---|---|
 | A A A A, A A B B, B B A A | True ending (plays the ending cutscene) |
 | B B B B | Secret ending (flags `rose_bush` + `goat_fire`) |
-| A B … | Goat death in phase 2 (Time < 0) |
-| B A … | Reputation death in phase 2 (Rep < 0) |
+| A B … | Goat death in phase 2 (Time hits 0) |
+| B A … | Reputation death in phase 2 (Rep hits 0) |
 | A A A B, B B A B | Goat death in phase 4 |
 | A A B A, B B B A | Reputation death in phase 4 |
 
@@ -61,7 +69,7 @@ The other characters (knights, doctor, friends, servant, maid, prince, nobles) a
 | `title_music` | Music on the title screen (optional) |
 | `show_stats` | `true` shows stats top-left, `false` hides them |
 | `stats` | Stat names and starting values. The names are shown exactly as written. |
-| `lose` | Which scene to jump to when each stat goes below 0 |
+| `lose` | Which scene to jump to when each stat reaches 0 |
 | `start` | First scene when you press Start |
 | `scenes` | Named lists of steps. Every scene must finish with `end`, `branch`, or a choice where every option has a `goto`. |
 
@@ -94,7 +102,7 @@ Black title card. Advance with click, Space or Enter.
 ]}
 ```
 After a click, the stats change and the flag is remembered.
-- **No `goto`:** the story continues with the next step. If a stat is below 0, the game immediately jumps to its `lose` scene.
+- **No `goto`:** the story continues with the next step. If a stat has reached 0, the game immediately jumps to its `lose` scene.
 - **With `"goto": "scene_name"`:** the game jumps to that scene, which is where the reaction dialogue for that pick goes. Stats are checked at that scene's closing `branch`, so the player sees what happened before dying.
 
 (Stats are checked at every `branch` step.)
@@ -115,7 +123,7 @@ Plays by itself. `fade` is the crossfade in seconds. A click skips the whole cut
 Rules are checked top to bottom and the first match wins. A rule can use `flags` (all must be set), `stat` with `min` and/or `max`, or both. `{"type": "branch", "else": "scene"}` is a plain jump.
 
 ```json
-{"type": "end", "text": "TRUE ENDING"}
+{"type": "end", "text": "TRUE ENDING", "hint": "optional small line under the title"}
 ```
 Shows the text and a **Return to title** button.
 

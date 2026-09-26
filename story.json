@@ -2,11 +2,12 @@
   "note": "REAL GAME. Search this file for ART:, MUSIC: and TODO: to find every placeholder. The feature demo lives in tutorial.json.",
   "title": "Excelsior",
   "about": "Made for Pyweek 42 Borrowed Time by Team Chinkaraoshiman.\n\nchis: story, planning \n\nspeedlimit35: art, music, code",
+  "title_bg": "title.png",
   "title_music": "20260924 - gtr.mp3",
   "note_title": "MUSIC: 20260924 - gtr.mp3 plays on the title screen and until we change later. Is default BGM",
   "show_stats": true,
-  "stats": {"Time": 3, "Reputation": 3},
-  "note_stats": "Starting values are a guess. With 3/3, 6 of 16 paths survive. Time < 0 = goat death, Reputation < 0 = reputation death.",
+  "stats": {"Time": 4, "Reputation": 4},
+  "note_stats": "Start 4/4. A stat reaching 0 ends the game: Time = goat death, Reputation = exiled. 6 of 16 paths survive (3 true, 3 normal).",
   "lose": {"Time": "goat_death", "Reputation": "rep_death"},
   "start": "intro",
 
@@ -37,9 +38,9 @@
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire", "text": "Very well."},
       {"type": "text", "speaker": "Claire", "text": "Knights! Bring forth my magnificent beast!"},
       {"type": "text", "sfx": "door_burst.wav", "text": "The doors open.", "sprites": {"middle": "knight.png"}, "note": "ART: knight.png (yours), shared by Knight 1 and Knight 2"},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "A tiny, extremely derpy goat slowly walks into the room."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "A tiny, extremely derpy goat slowly walks into the room."},
       {"type": "text", "text": "Silence."},
-      {"type": "text", "text": "Excelsior stares blankly at Claire."},
+      {"type": "text", "text": "Excelsior stares blankly at Claire.", "sprites": {"right": "excelsior_front.png"}},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "That is..."},
       {"type": "text", "speaker": "Claire", "text": "...my beast."},
       {"type": "text", "text": "Excelsior bleats."},
@@ -48,7 +49,7 @@
     ],
 
     "prologue": [
-      {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "What is the meaning of this! Do you mean to tarnish my reputation in front of all the kingdom!", "note": "TODO ART: CG of Claire in a private room with her knights (hall.png for now)"},
+      {"type": "text", "sprites": {"left": "claire_frustrated.png", "right": "excelsior_norm.png"}, "speaker": "Claire", "text": "What is the meaning of this! Do you mean to tarnish my reputation in front of all the kingdom!", "note": "TODO ART: CG of Claire in a private room with her knights (hall.png for now)"},
       {"type": "text", "speaker": "Knight 1", "text": "No milady! the Royal Mage has confirmed it himself that this is the mythical beast of the mountains!"},
       {"type": "text", "speaker": "Claire", "text": "Does this look any bit mythical to you! What could have caused it appear in such a manner!"},
       {"type": "text", "speaker": "Knight 2", "text": "Well uh…"},
@@ -89,12 +90,12 @@
       {"type": "text", "speaker": "Claire", "text": "Bring me Excelsior."},
       {"type": "text", "speaker": "Claire", "text": "And please... keep the beast under control."},
       {"type": "text", "speaker": "Servant", "text": "Yes, my lady."},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "A moment later, the servant enters with Excelsior on the leash."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "A moment later, the servant enters with Excelsior on the leash."},
       {"type": "text", "speaker": "Friend 1", "text": "Oh my!", "sprites": {"middle": "friend1.png"}},
       {"type": "text", "speaker": "Friend 2", "text": "He's adorable!", "sprites": {"middle": "friend2.png"}},
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire", "text": "I do believe you mean majestic... right?"},
       {"type": "text", "speaker": "Friend 1", "text": "And look at those eyes!", "sprites": {"middle": "friend1.png"}},
-      {"type": "text", "text": "Excelsior stares at the burning oil lamp on the table."},
+      {"type": "text", "text": "Excelsior stares at the burning oil lamp on the table.", "sprites": {"right": "excelsior_slant.png"}},
       {"type": "text", "speaker": "Claire", "text": "Excelsior?"},
       {"type": "text", "text": "Excelsior takes one step toward the lamp."},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "No."},
@@ -111,7 +112,7 @@
     "ch1_trust": [
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire", "text": "There is no need to worry. This is all intentional."},
       {"type": "text", "sfx": "crash.wav", "text": "The goat rams into the oil lamp on the table, causing adequate destruction in his path."},
-      {"type": "text", "sfx": "fire.wav", "sprites": {"right": "excelsior_fire.png"}, "text": "Excelsior is visibly on fire.", "note": "ART: excelsior_fire.png (currently a copy of excelsior.png)"},
+      {"type": "text", "sfx": "fire.wav", "sprites": {"right": "excelsior_front_fire.png"}, "text": "Excelsior is visibly on fire.", "note": "ART: excelsior_front_fire.png (yours)"},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "Uh…, this is normal behavior for highland beasts, they tend to seek out warmth due to the cold weather of their natural environment."},
       {"type": "text", "speaker": "Friend 2", "text": "Huh? I’ve never heard of this.", "sprites": {"middle": "friend2.png"}},
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire", "text": "And that is why you are not an expert as I am. I merely wanted to show you its natural behavior so you may understand the depth of knowledge required to tame such a beast."},
@@ -142,7 +143,7 @@
       {"type": "chapter", "text": "Chapter 2\nMeeting the Prince", "music": "20260924 - gtr.mp3", "note": "MUSIC: TODO pick a chapter 2 track (default BGM for now)"},
       {"type": "text", "bg": "courtyard.png", "sprites": {"left": "claire_neutral.png", "right": null, "middle": null}, "speaker": "Claire (thinking)", "text": "It has been 3 months since the tea party. As planned, word has spread about the mythical beast in my possession bringing me fame throughout the kingdom.", "note": "ART: courtyard.png (placeholder) = palace courtyard with a decorative stone pillar"},
       {"type": "text", "speaker": "Claire (thinking)", "text": "Though the attention has become a double edged sword as the prince has organized a meeting to see Excelsior for himself."},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "Claire walks into the courtyard with Excelsior on a leash awaiting the prince."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "Claire walks into the courtyard with Excelsior on a leash awaiting the prince."},
       {"type": "text", "speaker": "Claire", "text": "Remember, Excelsior. You be refined and dignified as a representative of the house of Claire."},
       {"type": "text", "speaker": "Claire", "text": "That means:\nNo charging.\nNo head butting.\nNo running into anyone."},
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "Do not embarrass me, understood?"},
@@ -157,7 +158,7 @@
       {"type": "text", "text": "Claire curtsies."},
       {"type": "text", "speaker": "Prince", "text": "And this must be the legendary beast I've heard so much about. Excelsior, correct?"},
       {"type": "text", "text": "The prince bows again, revealing his fiery red hair to the beast."},
-      {"type": "text", "text": "Excelsior's eyes lock onto the Prince's bright red hair as if in a hypnotic trance."},
+      {"type": "text", "text": "Excelsior's eyes lock onto the Prince's bright red hair as if in a hypnotic trance.", "sprites": {"right": "excelsior_slant.png"}},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "Oh no.."},
       {"type": "text", "text": "You see it in Excelsior’s eyes. He is going to headbutt the prince."},
       {"type": "choice", "options": [{"text": "Throw yourself in between them", "stats": {"Time": 1, "Reputation": -2}, "flag": "p2_block", "goto": "ch2_block"}, {"text": "Yank hard on the leash", "stats": {"Time": -2, "Reputation": 1}, "flag": "p2_yank", "goto": "ch2_yank"}]}
@@ -165,7 +166,7 @@
 
     "ch2_block": [
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "GET DOWN MR PRINCE!"},
-      {"type": "text", "sfx": "charge.wav", "text": "Excelsior goes for the attack."},
+      {"type": "text", "sfx": "charge.wav", "text": "Excelsior goes for the attack.", "sprites": {"right": "excelsior_front.png"}},
       {"type": "text", "sfx": "bonk.wav", "sprites": {"left": "claire_car_crash.png"}, "text": "You take the headbutt directly in the corset and go down."},
       {"type": "text", "text": "Excelsior and the prince are fine. You are not."},
       {"type": "text", "speaker": "Excelsior", "text": "Meeeeh."},
@@ -182,13 +183,13 @@
       {"type": "text", "speaker": "Prince", "text": "You truly care for him, don't you?"},
       {"type": "text", "speaker": "Claire", "text": "..."},
       {"type": "text", "speaker": "Claire", "text": "I care about keeping him alive."},
-      {"type": "text", "text": "Excelsior walks over and gently nudges Claire."},
+      {"type": "text", "text": "Excelsior walks over and gently nudges Claire.", "sprites": {"right": "excelsior_norm.png"}},
       {"type": "text", "speaker": "Claire", "text": "..."},
       {"type": "branch", "else": "ch3"}
     ],
 
     "ch2_yank": [
-      {"type": "text", "sfx": "charge.wav", "text": "Excelsior goes for the attack."},
+      {"type": "text", "sfx": "charge.wav", "text": "Excelsior goes for the attack.", "sprites": {"right": "excelsior_front.png"}},
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "EXCELSIOR!"},
       {"type": "text", "text": "You grab the leash and yank."},
       {"type": "text", "speaker": "Claire", "text": "EXCELSIOR!"},
@@ -199,7 +200,7 @@
       {"type": "text", "sfx": "crash.wav", "text": "CRASH."},
       {"type": "text", "text": "Excelsior crashes into a decorative stone pillar."},
       {"type": "text", "text": "The courtyard falls silent."},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "Excelsior stands up."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "Excelsior stands up."},
       {"type": "text", "speaker": "Excelsior", "text": "Beeeeh."},
       {"type": "text", "speaker": "Claire", "text": "..."},
       {"type": "text", "speaker": "Prince", "text": "Remarkable.", "sprites": {"middle": "prince.png"}},
@@ -233,11 +234,11 @@
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "I said stop it!"},
       {"type": "text", "sfx": "knock.wav", "text": "KNOCK KNOCK KNOCK KNOCK MEEEH"},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "!!!"},
-      {"type": "text", "sfx": "door_burst.wav", "sprites": {"right": "excelsior.png"}, "text": "The door crashes open revealing a very determined looking goat."},
+      {"type": "text", "sfx": "door_burst.wav", "sprites": {"right": "excelsior_front.png"}, "text": "The door crashes open revealing a very determined looking goat."},
       {"type": "text", "speaker": "Claire", "text": "How did you even get here?!"},
       {"type": "text", "text": "Excelsior bleats."},
       {"type": "text", "speaker": "Excelsior", "text": "Meeeeh."},
-      {"type": "text", "text": "Excelsior looks toward the sauna and sees the burning charcoals."},
+      {"type": "text", "text": "Excelsior looks toward the sauna and sees the burning charcoals.", "sprites": {"right": "excelsior_slant.png"}},
       {"type": "text", "speaker": "Claire", "text": "Excelsior! Don't!"},
       {"type": "text", "text": "You already know what is going to happen."},
       {"type": "text", "speaker": "Claire", "text": "Excelsior!"},
@@ -246,13 +247,13 @@
 
     "ch3_maids": [
       {"type": "text", "speaker": "Claire", "text": "Maids!"},
-      {"type": "text", "sfx": "fire.wav", "sprites": {"right": "excelsior_fire.png"}, "text": "Excelsior charges into the sauna and lays atop the burning coals-"},
+      {"type": "text", "sfx": "fire.wav", "sprites": {"right": "excelsior_front_fire.png"}, "text": "Excelsior charges into the sauna and lays atop the burning coals-"},
       {"type": "text", "speaker": "Maid", "text": "Yes M'lady— OH HEAVENS"},
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "Remove him from the coals at once!"},
       {"type": "text", "speaker": "Maid", "text": "Uh- yes M'lady"},
       {"type": "text", "text": "The maid struggles to pull Excelsior off of the coals. He appears to be a lot stronger than she anticipated."},
       {"type": "text", "speaker": "Claire", "text": "Here!"},
-      {"type": "text", "sfx": "splash.wav", "sprites": {"right": "excelsior.png"}, "text": "You pour tub water on Excelsior and the coals, extinguishing the goat."},
+      {"type": "text", "sfx": "splash.wav", "sprites": {"right": "excelsior_norm.png"}, "text": "You pour tub water on Excelsior and the coals, extinguishing the goat."},
       {"type": "text", "text": "Excelsior, now disinterested, walks towards Claire."},
       {"type": "text", "sprites": {"left": "claire_wtf.png"}, "speaker": "Claire", "text": "Why does he always look so pleased with himself? For a beast with severe brain damage, he sure has vast knowledge on making me worry!"},
       {"type": "branch", "else": "ch4"}
@@ -275,7 +276,7 @@
       {"type": "text", "speaker": "Maid", "text": "My lady?"},
       {"type": "text", "speaker": "Claire", "text": "Don't."},
       {"type": "text", "speaker": "Maid", "text": "I didn't say anything."},
-      {"type": "text", "text": "Excelsior stands up."},
+      {"type": "text", "text": "Excelsior stands up.", "sprites": {"right": "excelsior_norm.png"}},
       {"type": "text", "speaker": "Excelsior", "text": "Meeeeh."},
       {"type": "text", "text": "Excelsior nudges Claire's shoulder."},
       {"type": "text", "speaker": "Claire", "text": "…"},
@@ -288,7 +289,7 @@
       {"type": "text", "speaker": "Claire (thinking)", "text": "Nobles from every corner of the kingdom had gathered tonight."},
       {"type": "text", "sprites": {"left": "claire_happy.png"}, "speaker": "Claire (thinking)", "text": "And tonight, I would finally unveil my magnificent mythical beast for all to see!"},
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire (thinking)", "text": "Though I do believe, word has already spread far and wide."},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "Claire looks down at Excelsior on a leash."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "Claire looks down at Excelsior on a leash."},
       {"type": "text", "speaker": "Claire", "text": "Excelsior. This is it."},
       {"type": "text", "text": "Excelsior stares blankly at her."},
       {"type": "text", "text": "Claire enters the ballroom with Excelsior."},
@@ -325,7 +326,7 @@
       {"type": "text", "sfx": "scream.wav", "text": "The nobles scream."},
       {"type": "text", "speaker": "Noble 1", "text": "SHE'S MAD!", "sprites": {"middle": "noble1.png"}},
       {"type": "text", "speaker": "Noble 2", "text": "SOMEONE GET WATER!", "sprites": {"middle": "noble2.png"}},
-      {"type": "text", "sprites": {"left": "claire_car_crash.png", "right": "excelsior_fire.png"}, "text": "Claire emerges from the fireplace, covered in soot, clutching Excelsior."},
+      {"type": "text", "sprites": {"left": "claire_car_crash.png", "right": "excelsior_front_fire.png"}, "text": "Claire emerges from the fireplace, covered in soot, clutching Excelsior."},
       {"type": "text", "text": "Excelsior blinks."},
       {"type": "text", "speaker": "Excelsior", "text": "Meeeeh."},
       {"type": "text", "sprites": {"left": "claire_frustrated.png"}, "speaker": "Claire", "text": "You absolute fool!"},
@@ -368,7 +369,7 @@
       {"type": "text", "sprites": {"left": "claire_neutral.png"}, "speaker": "Claire", "text": "..."},
       {"type": "text", "text": "A silhouette appears inside the fireplace."},
       {"type": "text", "sprites": {"middle": "friend1.png"}, "speaker": "Friend 1", "text": "What is that?"},
-      {"type": "text", "sprites": {"right": "excelsior.png"}, "text": "Excelsior walks out of the flames."},
+      {"type": "text", "sprites": {"right": "excelsior_norm.png"}, "text": "Excelsior walks out of the flames."},
       {"type": "text", "speaker": "Crowd", "text": "GASP!"},
       {"type": "text", "text": "Excelsior stands completely unharmed."},
       {"type": "text", "speaker": "Excelsior", "text": "Meeeeh."},
@@ -396,7 +397,7 @@
     ],
 
     "finale": [
-      {"type": "branch", "note": "Ending is picked by the chapter 4 choice. If a stat is below 0 you get that death instead (checked first).", "rules": [{"flags": ["p4_let"], "goto": "true_end"}], "else": "normal_end"}
+      {"type": "branch", "note": "Ending is picked by the chapter 4 choice. If a stat has reached 0 you get that death instead (checked first).", "rules": [{"flags": ["p4_let"], "goto": "true_end"}], "else": "normal_end"}
     ],
 
     "normal_end": [
@@ -416,13 +417,18 @@
     ],
 
     "goat_death": [
-      {"type": "text", "bg": "game_over_goat.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "Despite Claire’s best efforts, Excelsior had run out of his “borrowed time” and succumbed to its injuries. Was the goat really killed by its own stupidity or...", "note": "Plays when Time < 0. TODO: text is unfinished in the script. ART: game_over_goat.png"},
-      {"type": "end", "text": "GAME OVER\nGoat Killer"}
+      {"type": "text", "bg": "game_over_goat.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "Excelsior had run out of his “borrowed time” as he succumbed to his injuries.", "note": "GOAT KILLER ENDING. Plays when Time reaches 0. ART: game_over_goat.png"},
+      {"type": "text", "text": "As word spread of the House of Claire’s mythical beast, alongside was the word of its death from your sheer unadulterated negligence."},
+      {"type": "text", "text": "Perhaps it was not the goat's mind that was the problem. Perhaps you are simply bad at taking care of goats."},
+      {"type": "end", "text": "GAME OVER\nGoat Killer", "hint": "Hint: Perhaps you should have cared more for your beast."}
     ],
 
     "rep_death": [
-      {"type": "text", "bg": "game_over_rep.png", "sprites": {"left": null, "middle": null, "right": null}, "music": "20260924 - gtr.mp3", "note": "Plays when Reputation < 0. ART: game_over_rep.png. MUSIC: TODO (default BGM for now)", "text": "TODO: Claire's reputation is ruined beyond repair."},
-      {"type": "end", "text": "GAME OVER\nYour reputation is ruined."}
+      {"type": "text", "bg": "game_over_rep.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "A royal envoy appears at the residence of the House of Claire.", "note": "EXILED ENDING. Plays when Reputation reaches 0. ART: game_over_rep.png"},
+      {"type": "text", "text": "Word of your unruliness has spread to every corner of the kingdom, and they have had enough."},
+      {"type": "text", "text": "You have brought too much shame and embarrassment upon your household, and the royal decree has stripped you of your noble title and exiled you from the kingdom."},
+      {"type": "text", "sprites": {"left": "claire_car_crash.png", "right": "excelsior_norm.png"}, "text": "You’ve lost your Nobility, Residence, but at least you still had your goat."},
+      {"type": "end", "text": "GAME OVER\nExiled", "hint": "Hint: To care for your beast is honorable. But you must guard your reputation just as fiercely as you guard your goat."}
     ]
   }
 }

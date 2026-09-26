@@ -4,7 +4,7 @@
   "about": "Made for [Game Jam] by [Team].\nThis About text comes from story.json.",
   "title_music": "title.wav",
   "show_stats": true,
-  "stats": {"Time": 4, "Rep": 4},
+  "stats": {"Time": 5, "Rep": 5},
   "lose": {"Time": "goat_death", "Rep": "rep_death"},
   "start": "intro",
 
