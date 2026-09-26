@@ -94,7 +94,7 @@ All of these **stay until changed**.
 | `bg` | `"garden.png"` | from `assets/bg/` |
 | `sprites` | `{"left": "alice_angry.png", "middle": null}` | positions: `left`, `middle`, `right`; `null` removes; from `assets/sprites/` |
 | `music` | `"calm.wav"` or `null` | loops; `null` stops; the same track as now keeps playing without restarting; from `assets/music/` |
-| `sfx` | `"ding.wav"` | plays once; from `assets/sfx/` |
+| `sfx` | `"ding.wav"`, or several: `["goatsfx_beeeeeeh.ogg", ["box-crash.ogg", 0.9]]` | plays once; a `[file, seconds]` pair plays after a delay; from `assets/sfx/` |
 | `note` | anything | ignored, use as a comment |
 
 ### Step types

@@ -44,8 +44,8 @@ DISSOLVE_TIME = 1.2              # seconds for a mid-scene background dissolve
 FADE_TIME = 0.8                  # seconds for a fade to black and back (chapters, new backgrounds, endings)
 # Sound effects that also shake or flash the screen. A step can also say
 # "shake": true or "flash": [r, g, b] itself.
-SHAKE_SFX = {"bonk.wav", "crash.wav", "charge.wav", "door_burst.wav", "box-crash.ogg"}
-FLASH_SFX = {"fire.wav": (255, 140, 30)}
+SHAKE_SFX = {"charge.wav", "box-crash.ogg", "door_burst.ogg", "sword.ogg"}
+FLASH_SFX = {"fire.ogg": (255, 140, 30)}
 
 
 # ---------------------------------------------------------------- story file
@@ -264,7 +264,7 @@ class Game:
         w = render_spaced(self.menu_font, "BACK", WHITE, 3).get_width() + 24
         self.back_button = Button("Back", (W // 2, MENU_Y), w, 44)
         self.dim_cache = {}
-        self.checkpoint, self.buttons, self.step = None, [], {"type": "none"}
+        self.checkpoint, self.buttons, self.step, self.pending_sfx = None, [], {"type": "none"}, []
         self.fade, self.fade_from, self.fade_dissolve, self.prev_kind = 0.0, None, False, None
         self.go_title()
 
@@ -288,7 +288,7 @@ class Game:
         self.bg, self.sprites = None, {}
         self.shake, self.flash, self.talking = 0.0, None, None
         self.popups, self.ff_timer = [], 0.0      # popups: [stat, delta, age]
-        self.prev_kind, self.checkpoint = None, None
+        self.prev_kind, self.checkpoint, self.pending_sfx = None, None, []
         self.mode = "story"
         self.goto(self.story["start"])
 
@@ -321,15 +321,23 @@ class Game:
         self.sprites.update(step.get("sprites", {}))   # null removes a sprite
         if "music" in step:
             self.assets.play_music(step["music"])
-        if "sfx" in step:
-            self.assets.sfx(step["sfx"])
+        # "sfx" is one file, or a list of files / [file, delay-in-seconds] pairs, e.g.
+        # ["goatsfx_beeeeeeh.ogg", ["box-crash.ogg", 0.9]]
+        sounds = step.get("sfx", [])
+        sounds = [sounds] if isinstance(sounds, str) else sounds
+        for snd in sounds:
+            name, delay = (snd, 0) if isinstance(snd, str) else snd
+            if delay:
+                self.pending_sfx.append([delay, name])
+            else:
+                self.play_sfx(name)
         # game feel: typewriter restart, shake, flash, who is speaking
         self.typed, self.type_pause = 0.0, 0.0
         if kind == "chapter":   # "Retry chapter" returns here with these stats
             self.checkpoint = (self.scene, dict(self.stats), set(self.flags), step.get("text", "").split("\n")[0])
-        if step.get("shake") or step.get("sfx") in SHAKE_SFX:
+        if step.get("shake"):
             self.shake = SHAKE_TIME
-        flash = step.get("flash") or FLASH_SFX.get(step.get("sfx"))
+        flash = step.get("flash")
         if flash:
             self.flash = [tuple(flash), 0.5]
         self.talking = self.speaker_position(step)
@@ -470,8 +478,21 @@ class Game:
         if name:
             self.assets.sfx(name)
 
+    def play_sfx(self, name):
+        """Play a sound effect; some also shake the screen or flash a colour."""
+        self.assets.sfx(name)
+        if name in SHAKE_SFX:
+            self.shake = SHAKE_TIME
+        if name in FLASH_SFX:
+            self.flash = [tuple(FLASH_SFX[name]), 0.5]
+
     def update(self, dt):
         self.fade = max(0.0, self.fade - dt)
+        for pending in self.pending_sfx:   # delayed sound effects
+            pending[0] -= dt
+            if pending[0] <= 0:
+                self.play_sfx(pending[1])
+        self.pending_sfx = [p for p in self.pending_sfx if p[0] > 0]
         mouse = pygame.mouse.get_pos()
         over = next((b for b in self.visible_buttons() if b.rect.collidepoint(mouse)), None)
         if over is not self.hovered and over is not None and not self.fade:
