@@ -32,8 +32,11 @@ def validate(story):
     scenes = story["scenes"]
     targets = [story["start"]] + list(story.get("lose", {}).values())
     for name, steps in scenes.items():
-        if not steps or steps[-1].get("type") not in ("end", "branch"):
-            sys.exit(f"story.json: scene '{name}' must finish with an 'end' or 'branch' step")
+        last = steps[-1] if steps else {}
+        jumps_away = last.get("type") == "choice" and all("goto" in o for o in last["options"])
+        if last.get("type") not in ("end", "branch") and not jumps_away:
+            sys.exit(f"story.json: scene '{name}' must finish with 'end', 'branch', "
+                     "or a choice where every option has a 'goto'")
         for i, step in enumerate(steps, 1):
             if step.get("type") not in STEP_TYPES:
                 sys.exit(f"story.json: scene '{name}' step {i} has unknown type {step.get('type')!r}")
@@ -41,6 +44,8 @@ def validate(story):
                 if "else" not in step:
                     sys.exit(f"story.json: scene '{name}' step {i} (branch) needs an 'else'")
                 targets += [r["goto"] for r in step.get("rules", [])] + [step["else"]]
+            if step["type"] == "choice":
+                targets += [o["goto"] for o in step["options"] if "goto" in o]
             if step["type"] == "cutscene" and not step.get("slides"):
                 sys.exit(f"story.json: scene '{name}' step {i} (cutscene) has no slides")
     for t in targets:
@@ -146,7 +151,8 @@ class Game:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((W, H))
-        self.story = load_story(os.path.join(HERE, "story.json"))
+        story_file = sys.argv[1] if len(sys.argv) > 1 else "story.json"   # python main.py tutorial.json
+        self.story = load_story(os.path.join(HERE, story_file))
         pygame.display.set_caption(self.story.get("title", "Visual Novel"))
         self.font = pygame.font.Font(None, 36)
         self.big = pygame.font.Font(None, 80)
@@ -187,7 +193,7 @@ class Game:
 
         kind = step["type"]
         if kind == "branch":
-            self.goto(self.pick_branch(step))
+            self.goto(self.lost_scene() or self.pick_branch(step))
         elif kind == "cutscene":
             self.timer = 0.0
         elif kind == "choice":
@@ -212,10 +218,22 @@ class Game:
             self.stats[stat] += delta
         if "flag" in option:
             self.flags.add(option["flag"])
-        for stat, scene in self.story.get("lose", {}).items():
-            if self.stats[stat] < 0:
-                return self.goto(scene)
+        if "goto" in option:   # stats get checked at that scene's closing branch
+            return self.goto(option["goto"])
+        lost = self.lost_scene()
+        if lost:
+            return self.goto(lost)
         self.next_step()
+
+    def lost_scene(self):
+        """Scene to jump to if a stat is below 0, else None."""
+        lose = self.story.get("lose", {})
+        if self.scene in lose.values():
+            return None
+        for stat, scene in lose.items():
+            if self.stats[stat] < 0:
+                return scene
+        return None
 
     # ---- input / update
     def handle(self, event):

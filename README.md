@@ -2,16 +2,41 @@
 
 ```
 pip install pygame
-python main.py
+python main.py                  # the real game (story.json)
+python main.py tutorial.json    # the feature demo
 ```
 
 You only ever edit **story.json** and the files in **assets/**. `main.py` stays untouched.
 
-## Tutorial: learn it by playing
+## The real game (story.json)
 
-1. Run the game and click **About** (text from story.json), then **Back**, then **Start**.
+Search story.json for `ART:`, `MUSIC:`, `SFX:` and `TODO:` to find every placeholder. To swap in real art or music, overwrite the placeholder file with the same name. Each placeholder image has its description printed on it.
+
+| File | Status | Used for |
+|---|---|---|
+| `cutscenes/opening1-3.png` | placeholder | Intro slideshow |
+| `bg/hall.png` | **yours** | Intro and prologue (stand-in for their CGs), hallway in chapter 3 |
+| `bg/garden.png` | **yours** | Chapter 1 tea party |
+| `bg/courtyard.png` | placeholder | Chapter 2 courtyard with a stone pillar |
+| `bg/spa.png` | **yours** | Chapter 3 sauna |
+| `bg/palace.png` | **yours** | Chapter 4 ballroom |
+| `bg/festival.png` | placeholder | Chapter 4 ballroom once the bonfire is lit |
+| `bg/ending_normal.png`, `bg/ending_true.png`, `bg/game_over_goat.png`, `bg/game_over_rep.png` | placeholder | Endings and deaths |
+| `sprites/claire_neutral / happy / laugh / wtf / frustrated / car_crash.png` | **yours** | Claire (left) |
+| `sprites/excelsior.png` | **yours** | Goat (right) |
+| `sprites/excelsior_fire.png` | copy of excelsior.png | Goat on fire |
+| `music/20260924 - gtr.mp3` | **yours** | Title and all chapters for now (search `MUSIC: TODO`) |
+| `sfx/*.wav` | placeholder | door_burst, bonk, crash, fire, knock, charge, applause, scream, whoosh, splash |
+
+The other characters (knights, doctor, friends, servant, maid, prince, nobles) are name-only, with no sprite. Stats start at Time 3 and Reputation 3, which lets 6 of the 16 paths survive. Change `"stats"` to rebalance.
+
+**True ending:** a placeholder in the `finale` scene. Every choice already sets a flag (`p1_trust`, `p1_yeet`, `p2_block`, `p2_yank`, `p3_maids`, `p3_save`, `p4_dive`, `p4_let`). List the ones required, and that's the only edit.
+
+## Tutorial: learn it by playing (tutorial.json)
+
+1. Run `python main.py tutorial.json` and click **About** (text from story.json), then **Back**, then **Start**.
 2. Play through. The Guide character explains each feature as it happens.
-3. Open `story.json` next to the game. Every feature has a `"note"` on the step that uses it, so you can match what you saw to the JSON that caused it.
+3. Open `tutorial.json` next to the game. Every feature has a `"note"` on the step that uses it, so you can match what you saw to the JSON that caused it.
 4. Replay to see every ending (letters = option picked in phases 1–4, A = top button):
 
 | Path | Ending |
@@ -23,7 +48,7 @@ You only ever edit **story.json** and the files in **assets/**. `main.py` stays 
 | A A A B, B B A B | Goat death in phase 4 |
 | A A B A, B B B A | Reputation death in phase 4 |
 
-5. Try breaking things: delete a comma in story.json, or rename a scene. The game refuses to start and tells you the line or the scene name.
+5. Try breaking things: delete a comma in tutorial.json, or rename a scene. The game refuses to start and tells you the line or the scene name.
 
 ## story.json reference
 
@@ -38,7 +63,7 @@ You only ever edit **story.json** and the files in **assets/**. `main.py` stays 
 | `stats` | Stat names and starting values. The names are shown exactly as written. |
 | `lose` | Which scene to jump to when each stat goes below 0 |
 | `start` | First scene when you press Start |
-| `scenes` | Named lists of steps. Every scene must finish with `end` or `branch`. |
+| `scenes` | Named lists of steps. Every scene must finish with `end`, `branch`, or a choice where every option has a `goto`. |
 
 ### Fields any step can have
 All of these **stay until changed**.
@@ -65,10 +90,14 @@ Black title card. Advance with click, Space or Enter.
 
 ```json
 {"type": "choice", "text": "Optional prompt", "options": [
-  {"text": "Button label", "stats": {"Time": -2, "Rep": 2}, "flag": "optional_flag"}
+  {"text": "Button label", "stats": {"Time": -2, "Rep": 2}, "flag": "optional_flag", "goto": "optional_scene"}
 ]}
 ```
-After a click, the stats change and the flag is remembered. If any stat is below 0, the game jumps to its `lose` scene.
+After a click, the stats change and the flag is remembered.
+- **No `goto`:** the story continues with the next step. If a stat is below 0, the game immediately jumps to its `lose` scene.
+- **With `"goto": "scene_name"`:** the game jumps to that scene, which is where the reaction dialogue for that pick goes. Stats are checked at that scene's closing `branch`, so the player sees what happened before dying.
+
+(Stats are checked at every `branch` step.)
 
 ```json
 {"type": "cutscene", "music": "intro.wav", "fade": 1.0, "slides": [
