@@ -225,7 +225,7 @@ class Game:
                 pygame.display.set_icon(pygame.image.load(os.path.join(ASSETS, self.story["icon"])))
             except (pygame.error, FileNotFoundError):
                 print(f"WARNING: missing icon assets/{self.story['icon']}")
-        self.screen = pygame.display.set_mode((W, H))
+        self.screen = pygame.display.set_mode((W, H), pygame.SCALED | pygame.RESIZABLE)  # maximise button; scales and letterboxes, mouse coords stay 1280x720
         # endings the player has seen, remembered between sessions (one file per story file)
         self.endings_file = os.path.join(HERE, "endings_found_" + os.path.splitext(story_file)[0] + ".json")
         self.all_endings = [ending_name(st) for steps in self.story["scenes"].values()
