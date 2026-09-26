@@ -11,8 +11,8 @@
   "speaker_colours": {"Claire": [240, 212, 138], "Excelsior": [236, 228, 206], "Mythical Beast": [236, 228, 206], "Prince": [236, 120, 88], "default": [178, 178, 186]},
   "secret_video": {"unlock": "Borrowed Time", "frames": "video/goat_vid", "audio": "video/goat_vid.ogg", "fps": 20, "button": "icon.png"},
   "title_bg": "title.png",
-  "music_volume": {"2026092423_osdyspdup.mp3": 0.55},
-  "sfx_volume": {"goatsfx_beeeeeeh.ogg": 0.6, "goatsfx_behehehe.ogg": 0.6},
+  "music_volume": {"2026092423_osdyspdup.mp3": 1.0},
+  "sfx_volume": {"applause.ogg": 0.6, "crowd_gasp.ogg": 0.6, "pottery_crash.ogg": 0.5, "splash.ogg": 0.5, "box-crash.ogg": 0.6, "goatsfx_beeeeeeh.ogg": 0.6, "goatsfx_behehehe.ogg": 0.6, "fire.ogg": 1.0},
   "title_music": "20260924 - gtr.mp3",
   "note_title": "MUSIC: 20260924 - gtr.mp3 plays on the title screen and until we change later. Is default BGM",
   "show_stats": true,
@@ -450,9 +450,9 @@
     ],
 
     "normal_end": [
-      {"type": "text", "bg": "ending_normal.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "After saving Excelsior from the flames, Claire and Excelsior went back to the house of Claire appearing broken, but sharing a stronger bond than ever before.", "note": "ENDING — A LIFE WORTH SAVING. ART: ending_normal.png. MUSIC: TODO (default BGM for now)", "fade": true},
+      {"type": "text", "bg": "ending_normal_1.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "After saving Excelsior from the flames, Claire and Excelsior went back to the house of Claire appearing broken, but sharing a stronger bond than ever before.", "note": "ENDING — A LIFE WORTH SAVING. ART: ending_normal.png. MUSIC: TODO (default BGM for now)", "fade": true},
       {"type": "text", "text": "However, as the house doctor stated, Excelsior's condition continued to worsen over the coming months."},
-      {"type": "text", "text": "But for the remaining time they had together, Claire stayed by his side."},
+      {"type": "text", "text": "But for the remaining time they had together, Claire stayed by his side.", "bg": "ending_normal_2.png", "fade": "dissolve"},
       {"type": "text", "text": "Her reputation never fully recovered, but it mattered to her no longer."},
       {"type": "text", "text": "…Perhaps there is another way to save him."},
       {"type": "end", "text": "ENDING\nA Life Worth Saving"}
@@ -476,9 +476,9 @@
     ],
 
     "rep_death": [
-      {"type": "text", "bg": "game_over_rep.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "A royal envoy appears at the residence of the House of Claire.", "note": "EXILED ENDING. Plays when Reputation reaches 0. ART: game_over_rep.png", "fade": true},
+      {"type": "text", "bg": "game_over_rep_1.png", "music": "20260924 - gtr.mp3", "sprites": {"left": null, "middle": null, "right": null}, "text": "A royal envoy appears at the residence of the House of Claire.", "note": "EXILED ENDING. Plays when Reputation reaches 0. ART: game_over_rep.png", "fade": true},
       {"type": "text", "text": "Word of your unruliness has spread to every corner of the kingdom, and they have had enough."},
-      {"type": "text", "text": "You have brought too much shame and embarrassment upon your household, and the royal decree has stripped you of your noble title and exiled you from the kingdom."},
+      {"type": "text", "text": "You have brought too much shame and embarrassment upon your household, and the royal decree has stripped you of your noble title and exiled you from the kingdom.", "bg": "game_over_rep_2.png", "fade": "dissolve"},
       {"type": "text", "text": "You’ve lost your Nobility, Residence, but at least you still had your goat."},
       {"type": "end", "text": "GAME OVER\nExiled", "hint": "Hint: To care for your beast is honorable. But you must guard your reputation just as fiercely as you guard your goat."}
     ]
