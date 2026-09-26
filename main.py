@@ -1,5 +1,6 @@
 """Minimal visual novel engine. All story content lives in story.json - see README.md."""
 import json
+import math
 import os
 import random
 import sys
@@ -23,14 +24,27 @@ FAST_FORWARD_KEYS = (pygame.K_TAB, pygame.K_LCTRL, pygame.K_RCTRL)   # hold to s
 DIM = (140, 140, 140)            # colour multiplier for sprites that aren't speaking
 SHAKE_PIXELS = 4                 # how far the screen shakes
 SHAKE_TIME = 0.2                 # seconds; the shake fades out over this time
+# comic timing: extra pause (seconds) after these characters while text types out. {} = off
+PUNCTUATION_PAUSE = {".": 0.28, "!": 0.28, "?": 0.28, "…": 0.35, ",": 0.08}
+
 # ---- title screen look
+TEXT_FONT = "helveticaneue,helvetica,arial,dejavusans"   # dialogue text: plain and easy to read
 MENU_FONT = "georgia,baskerville,palatino,timesnewroman,dejavuserif"   # first one installed is used
-TITLE_COLOUR = (28, 38, 66)      # deep navy, reads well on the sky
-MENU_PANEL = (22, 30, 52)        # button colour (drawn see-through)
+TITLE_TOP = 40                   # y of the title's first line
+TITLE_ACCENT = (34, 50, 112)     # royal indigo for the big words of a "title_logo"
+MENU_Y = H - 46                  # the row of title-screen buttons sits on the grass
+TITLE_COLOUR = (82, 102, 152)    # softer indigo for the small title words
+TITLE_HALO = (232, 242, 255)     # faint pale-blue edge that lifts the title off the clouds
+TITLE_HALO_ALPHA = 55            # 0 = no edge, 255 = solid
+END_VEIL = 150                   # how dark the ending CG gets behind the end screen (0-255)
+CHAPTER_LABEL = (196, 168, 120)  # "CHAPTER 1" line on chapter cards (muted gold)
+CHAPTER_TEXT = (236, 224, 200)   # chapter name on chapter cards (parchment)
+MENU_PANEL = (22, 30, 52)        # tint behind the About text
+DISSOLVE_TIME = 1.2              # seconds for a mid-scene background dissolve
 FADE_TIME = 0.8                  # seconds for a fade to black and back (chapters, new backgrounds, endings)
 # Sound effects that also shake or flash the screen. A step can also say
 # "shake": true or "flash": [r, g, b] itself.
-SHAKE_SFX = {"bonk.wav", "crash.wav", "charge.wav", "door_burst.wav"}
+SHAKE_SFX = {"bonk.wav", "crash.wav", "charge.wav", "door_burst.wav", "box-crash.ogg"}
 FLASH_SFX = {"fire.wav": (255, 140, 30)}
 
 
@@ -82,6 +96,7 @@ class Assets:
         self.font = font
         self.images, self.sounds = {}, {}
         self.music = None
+        self.volumes = {}   # per-track music volume (0..1), from "music_volume" in story.json
         try:
             pygame.mixer.init()
             self.audio = True
@@ -126,6 +141,7 @@ class Assets:
         if name:
             try:
                 pygame.mixer.music.load(os.path.join(ASSETS, "music", name))
+                pygame.mixer.music.set_volume(self.volumes.get(name, 1.0))
                 pygame.mixer.music.play(-1)
             except (pygame.error, FileNotFoundError):
                 print(f"WARNING: missing music assets/music/{name}")
@@ -147,6 +163,24 @@ def wrap(font, text, width):
     return lines
 
 
+def render_spaced(font, text, colour, spacing):
+    """Text with extra space between letters (for small-caps menu labels)."""
+    chars = [font.render(c, True, colour) for c in text]
+    surf = pygame.Surface((sum(c.get_width() for c in chars) + spacing * (len(chars) - 1),
+                           font.get_height()), pygame.SRCALPHA)
+    x = 0
+    for c in chars:
+        surf.blit(c, (x, 0))
+        x += c.get_width() + spacing
+    return surf
+
+
+def ending_name(step):
+    """An end screen's name is the last line of its text ("GAME OVER\nExiled" -> "Exiled")."""
+    lines = [l for l in step.get("text", "").split("\n") if l.strip()]
+    return lines[-1] if lines else "Ending"
+
+
 class Button:
     def __init__(self, text, center, width=600, height=60):
         self.text = text
@@ -155,16 +189,22 @@ class Button:
 
     def draw(self, surf, font, menu=False):
         hover = self.rect.collidepoint(pygame.mouse.get_pos())
-        if menu:   # title screen: see-through rounded panel, gold text on hover
-            panel = pygame.Surface(self.rect.size, pygame.SRCALPHA)
-            pygame.draw.rect(panel, MENU_PANEL + ((215,) if hover else (150,)), panel.get_rect(), border_radius=14)
+        if menu:   # title screen: text only, like a visual novel menu; gold + underline on hover
+            label = render_spaced(font, self.text.upper(), GOLD if hover else (238, 236, 228), 3)
+            shadow = render_spaced(font, self.text.upper(), BLACK, 3)
+            shadow.set_alpha(170)
+            spot = label.get_rect(center=self.rect.center)
+            surf.blit(shadow, spot.move(2, 2))
+            surf.blit(label, spot)
             if hover:
-                pygame.draw.rect(panel, GOLD, panel.get_rect(), width=2, border_radius=14)
-            surf.blit(panel, self.rect)
-            label = font.render(self.text, True, GOLD if hover else WHITE)
-        else:
-            pygame.draw.rect(surf, (110, 110, 170) if hover else (60, 60, 100), self.rect)
-            label = font.render(self.text, True, WHITE)
+                pygame.draw.line(surf, GOLD, (spot.left, spot.bottom + 2), (spot.right, spot.bottom + 2), 2)
+            return
+        panel = pygame.Surface(self.rect.size, pygame.SRCALPHA)   # choices: see-through rounded panel
+        pygame.draw.rect(panel, MENU_PANEL + ((225,) if hover else (175,)), panel.get_rect(), border_radius=12)
+        if hover:
+            pygame.draw.rect(panel, GOLD, panel.get_rect(), width=2, border_radius=12)
+        surf.blit(panel, self.rect)
+        label = font.render(self.text, True, GOLD if hover else WHITE)
         surf.blit(label, label.get_rect(center=self.rect.center))
 
     def clicked(self, event):
@@ -176,30 +216,66 @@ class Button:
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((W, H))
         story_file = sys.argv[1] if len(sys.argv) > 1 else "story.json"   # python main.py tutorial.json
         self.story = load_story(os.path.join(HERE, story_file))
+        if self.story.get("icon"):   # window / dock icon, e.g. "icon.png" in assets/
+            try:
+                pygame.display.set_icon(pygame.image.load(os.path.join(ASSETS, self.story["icon"])))
+            except (pygame.error, FileNotFoundError):
+                print(f"WARNING: missing icon assets/{self.story['icon']}")
+        self.screen = pygame.display.set_mode((W, H))
+        # endings the player has seen, remembered between sessions (one file per story file)
+        self.endings_file = os.path.join(HERE, "endings_found_" + os.path.splitext(story_file)[0] + ".json")
+        self.all_endings = [ending_name(st) for steps in self.story["scenes"].values()
+                            for st in steps if st["type"] == "end"]
+        try:
+            with open(self.endings_file) as f:
+                self.endings_found = set(json.load(f))
+        except (OSError, ValueError):
+            self.endings_found = set()
+        self.hovered = None
         pygame.display.set_caption(self.story.get("title", "Visual Novel"))
-        self.font = pygame.font.Font(None, 36)
-        self.big = pygame.font.Font(None, 80)
+        self.font = pygame.font.SysFont(TEXT_FONT, 32)                 # dialogue (clean, easy to read)
+        self.stats_font = pygame.font.SysFont(MENU_FONT, 30)           # Time / Reputation corner
+        self.choice_font = pygame.font.SysFont(MENU_FONT, 30)          # choice buttons (serif, like the menus)
+        self.name_font = pygame.font.SysFont(MENU_FONT, 30, bold=True)  # speaker names
+        self.big = pygame.font.SysFont(MENU_FONT, 64)                  # end screens
+        self.popup_font = pygame.font.SysFont(MENU_FONT, 44, bold=True)  # "+1 Time" popups
         self.assets = Assets(self.font)
+        self.assets.volumes = self.story.get("music_volume", {})
         self.clock = pygame.time.Clock()
-        self.title_font = pygame.font.SysFont(MENU_FONT, 104, bold=True)
-        self.menu_font = pygame.font.SysFont(MENU_FONT, 36)
-        # menu stacked under the title on the left, leaving the bottom of the art clear
-        self.title_buttons = [Button(t, (90 + 130, 268 + i * 70), 260, 58)
-                              for i, t in enumerate(("Start", "About", "Quit"))]
-        self.back_button = Button("Back", (W // 2, H - 100), 260, 58)
+        self.menu_font = pygame.font.SysFont(MENU_FONT, 30)
+        self.chapter_font = pygame.font.SysFont(MENU_FONT, 62)
+        # Title logo: "title_logo" in story.json lists lines with their own size, so the key
+        # words can be big and the joining words small. Without it, "title" is used as one line.
+        self.title_logo = [(pygame.font.SysFont(MENU_FONT, line.get("size", 60), bold=True),
+                            line["text"], TITLE_ACCENT if line.get("accent") else TITLE_COLOUR)
+                           for line in self.story.get("title_logo", [])]
+        if not self.title_logo:
+            self.title_logo = [(pygame.font.SysFont(MENU_FONT, 96, bold=True), self.story.get("title", ""), TITLE_ACCENT)]
+        # one row of text buttons along the bottom of the title art, evenly spaced and centred
+        labels = ("Start", "About", "Quit")
+        widths = [render_spaced(self.menu_font, t.upper(), WHITE, 3).get_width() + 24 for t in labels]
+        gap, x = 70, (W - sum(widths) - 70 * (len(labels) - 1)) // 2
+        self.title_buttons = []
+        for t, w in zip(labels, widths):
+            self.title_buttons.append(Button(t, (x + w // 2, MENU_Y), w, 44))
+            x += w + gap
+        w = render_spaced(self.menu_font, "BACK", WHITE, 3).get_width() + 24
+        self.back_button = Button("Back", (W // 2, MENU_Y), w, 44)
         self.dim_cache = {}
-        self.fade, self.fade_from, self.prev_kind = 0.0, None, None
+        self.checkpoint, self.buttons, self.step = None, [], {"type": "none"}
+        self.fade, self.fade_from, self.fade_dissolve, self.prev_kind = 0.0, None, False, None
         self.go_title()
 
     # ---- flow
-    def start_fade(self):
-        """Fade the last shown frame to black, then fade the new one in."""
+    def start_fade(self, dissolve=False):
+        """Black fade: old frame to black, then the new one in.
+        Dissolve: the old frame melts straight into the new one (mid-scene background changes)."""
         held = pygame.key.get_pressed()
         if not self.fade and not any(held[k] for k in FAST_FORWARD_KEYS):
-            self.fade_from, self.fade = self.screen.copy(), FADE_TIME
+            self.fade_from, self.fade_dissolve = self.screen.copy(), dissolve
+            self.fade = DISSOLVE_TIME if dissolve else FADE_TIME
 
     def go_title(self):
         self.start_fade()
@@ -212,9 +288,15 @@ class Game:
         self.bg, self.sprites = None, {}
         self.shake, self.flash, self.talking = 0.0, None, None
         self.popups, self.ff_timer = [], 0.0      # popups: [stat, delta, age]
-        self.prev_kind = None
+        self.prev_kind, self.checkpoint = None, None
         self.mode = "story"
         self.goto(self.story["start"])
+
+    def retry_chapter(self):
+        scene, stats, flags, _ = self.checkpoint
+        self.stats, self.flags = dict(stats), set(flags)
+        self.bg, self.sprites, self.popups, self.prev_kind = None, {}, [], None
+        self.goto(scene)
 
     def goto(self, scene):
         self.scene, self.index = scene, -1
@@ -225,9 +307,12 @@ class Game:
         step = self.step = self.story["scenes"][self.scene][self.index]
         kind = step["type"]
         if kind != "branch":   # fade on chapters, cutscenes, endings, new locations, or "fade": true
-            auto = (kind in ("chapter", "cutscene", "end") or self.prev_kind in (None, "chapter", "cutscene")
-                    or ("bg" in step and step["bg"] != self.bg))
-            if step.get("fade", auto):   # "fade": false on a step turns it off
+            black = kind in ("chapter", "cutscene", "end") or self.prev_kind in (None, "chapter", "cutscene")
+            new_bg = "bg" in step and step["bg"] != self.bg
+            wanted = step.get("fade")   # true = black fade, "dissolve", false = none, missing = automatic
+            if wanted == "dissolve":
+                self.start_fade(dissolve=True)
+            elif wanted or (wanted is None and (black or new_bg)):
                 self.start_fade()
             self.prev_kind = kind
         # Fields any step may carry. They persist until changed.
@@ -239,7 +324,9 @@ class Game:
         if "sfx" in step:
             self.assets.sfx(step["sfx"])
         # game feel: typewriter restart, shake, flash, who is speaking
-        self.typed = 0.0
+        self.typed, self.type_pause = 0.0, 0.0
+        if kind == "chapter":   # "Retry chapter" returns here with these stats
+            self.checkpoint = (self.scene, dict(self.stats), set(self.flags), step.get("text", "").split("\n")[0])
         if step.get("shake") or step.get("sfx") in SHAKE_SFX:
             self.shake = SHAKE_TIME
         flash = step.get("flash") or FLASH_SFX.get(step.get("sfx"))
@@ -256,7 +343,20 @@ class Game:
             self.buttons = [Button(o["text"], (W // 2, 280 + i * 80 - (n - 1) * 40))
                             for i, o in enumerate(step["options"])]
         elif kind == "end":
+            name = ending_name(step)
+            if name not in self.endings_found:
+                self.endings_found.add(name)
+                try:
+                    with open(self.endings_file, "w") as f:
+                        json.dump(sorted(self.endings_found), f)
+                except OSError:
+                    pass
             self.buttons = [Button("Return to title", (W // 2, H // 2 + 150), 400)]
+            retry_on = self.story.get("retry_on", "deaths")   # "deaths", "all" or "none"
+            is_death = self.scene in self.story.get("lose", {}).values()
+            if self.checkpoint and (retry_on == "all" or (retry_on == "deaths" and is_death)):   # replay this chapter
+                self.buttons[0].rect.centerx = W // 2 + 220
+                self.buttons.append(Button("Retry " + self.checkpoint[3], (W // 2 - 220, H // 2 + 150), 400))
 
     def speaker_position(self, step):
         """Sprite slot of the speaker. Sprite files start with the speaker's name
@@ -310,6 +410,8 @@ class Game:
                    or (event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN)))
         if self.fade:   # ignore clicks mid-fade so nobody skips a line by accident
             return
+        if any(b.clicked(event) for b in self.visible_buttons()):
+            self.ui_sound("click")
         if self.mode == "title":
             start, about, quit_ = self.title_buttons
             if start.clicked(event):
@@ -325,22 +427,68 @@ class Game:
             kind = self.step["type"]
             if kind == "text" and advance and self.typed < len(self.step["text"]):
                 self.typed = len(self.step["text"])                    # first click finishes the line
-            elif kind in ("text", "chapter", "cutscene") and advance:   # click skips a cutscene
+            elif kind == "cutscene" and advance:   # click moves to the next slide; on the last slide, ends it
+                self.next_slide()
+            elif kind in ("text", "chapter") and advance:
                 self.next_step()
             elif kind == "choice":
                 for button, option in zip(self.buttons, self.step["options"]):
                     if button.clicked(event):
                         self.choose(option)
                         break
-            elif kind == "end" and self.buttons[0].clicked(event):
-                self.go_title()
+            elif kind == "end":
+                if self.buttons[0].clicked(event):
+                    self.go_title()
+                elif len(self.buttons) > 1 and self.buttons[1].clicked(event):
+                    self.start_fade()
+                    self.retry_chapter()
+
+    def next_slide(self):
+        """Jump to the crossfade into the next slide (or straight to it if already fading)."""
+        slides, fade = self.step["slides"], self.step.get("fade", 1.0)
+        start = 0.0
+        for i, slide in enumerate(slides):
+            end = start + slide["duration"]
+            if self.timer < end:
+                break
+            start = end
+        if i == len(slides) - 1:
+            self.next_step()
+        else:
+            cross = end - fade
+            self.timer = cross if self.timer < cross else end
+
+    def visible_buttons(self):
+        if self.mode == "title":
+            return self.title_buttons
+        if self.mode == "about":
+            return [self.back_button]
+        return self.buttons if self.step["type"] in ("choice", "end") else []
+
+    def ui_sound(self, which):
+        name = self.story.get("ui_sounds", {}).get(which)   # e.g. {"hover": "ui_hover.wav", "click": "ui_click.wav"}
+        if name:
+            self.assets.sfx(name)
 
     def update(self, dt):
         self.fade = max(0.0, self.fade - dt)
+        mouse = pygame.mouse.get_pos()
+        over = next((b for b in self.visible_buttons() if b.rect.collidepoint(mouse)), None)
+        if over is not self.hovered and over is not None and not self.fade:
+            self.ui_sound("hover")
+        self.hovered = over
         if self.mode != "story":
             return
-        if not self.fade:   # text starts typing once the fade is done
-            self.typed += dt * TEXT_SPEED
+        if not self.fade and self.step["type"] == "text":   # text starts typing once the fade is done
+            if self.type_pause > 0:
+                self.type_pause -= dt
+            else:
+                text, before = self.step["text"], int(self.typed)
+                self.typed += dt * TEXT_SPEED
+                for i in range(before, min(int(self.typed), len(text) - 1)):   # pause after "...", "!", ","
+                    if text[i] in PUNCTUATION_PAUSE and text[i + 1] not in PUNCTUATION_PAUSE:
+                        self.typed, self.type_pause = i + 1, PUNCTUATION_PAUSE[text[i]]
+                        break
         self.shake = max(0.0, self.shake - dt)
         if self.flash:
             self.flash[1] -= dt
@@ -369,28 +517,78 @@ class Game:
             self.screen.blit(img, img.get_rect(midtop=(W // 2, y)))
             y += font.get_linesize()
 
-    def draw_title_text(self, text, pos):
-        """Big serif title with a soft white halo so it reads over sky and clouds."""
-        halo = self.title_font.render(text, True, WHITE)
-        halo.set_alpha(110)
-        for dx, dy in ((-3, 0), (3, 0), (0, -3), (0, 3), (-2, -2), (2, 2), (-2, 2), (2, -2)):
-            self.screen.blit(halo, (pos[0] + dx, pos[1] + dy))
-        self.screen.blit(self.title_font.render(text, True, TITLE_COLOUR), pos)
+    def draw_title_text(self, pos):
+        """Title logo: each line in its own size/colour, with a faint halo over the sky."""
+        x, y = pos
+        for font, text, colour in self.title_logo:
+            halo = font.render(text, True, TITLE_HALO)
+            halo.set_alpha(TITLE_HALO_ALPHA)
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                self.screen.blit(halo, (x + dx, y + dy))
+            self.screen.blit(font.render(text, True, colour), (x, y))
+            y += int(font.get_linesize() * 0.92)
+
+    def draw_endings_found(self):
+        """Top-right of the title screen: "Endings found 2 / 4" and each ending's name, or ??? if not found yet."""
+        found = len(self.endings_found & set(self.all_endings))
+        header = ("All endings found. Thank you for playing!" if found == len(self.all_endings)
+                  else f"Endings found  {found} / {len(self.all_endings)}")
+        rows = [(header, TITLE_ACCENT)]
+        rows += [(n if n in self.endings_found else "???", TITLE_COLOUR) for n in self.all_endings]
+        y = TITLE_TOP + 6
+        for text, colour in rows:
+            img = self.menu_font.render(text, True, colour)
+            halo = self.menu_font.render(text, True, TITLE_HALO)
+            halo.set_alpha(TITLE_HALO_ALPHA)
+            x = W - 50 - img.get_width()
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                self.screen.blit(halo, (x + dx, y + dy))
+            self.screen.blit(img, (x, y))
+            y += img.get_height() + 4
+
+    def draw_chapter_card(self, text):
+        """Chapter card on the "chapter_bg" image: first line small gold capitals, rest large serif."""
+        self.screen.blit(self.assets.image("bg", self.story["chapter_bg"], (W, H), True), (0, 0))
+        lines = [l for l in text.split("\n") if l.strip()]
+        label, heading = (lines[0], lines[1:]) if len(lines) > 1 else (None, lines)
+        rows = []
+        if label:
+            rows.append(render_spaced(self.menu_font, label.upper(), CHAPTER_LABEL, 4))
+            rows.append(None)   # gap
+        for line in heading:
+            rows.append(self.chapter_font.render(line, True, CHAPTER_TEXT))
+        height = sum(r.get_height() if r else 18 for r in rows)
+        y = H // 2 - height // 2
+        for r in rows:
+            if r:
+                self.screen.blit(r, r.get_rect(midtop=(W // 2, y)))
+                y += r.get_height()
+            else:
+                pygame.draw.line(self.screen, CHAPTER_LABEL, (W // 2 - 60, y + 8), (W // 2 + 60, y + 8), 1)
+                y += 18
 
     def draw_box(self, speaker, text, shown=10**9):
         box = pygame.Surface((W, BOX_H), pygame.SRCALPHA)
         box.fill((0, 0, 0, 190))
         self.screen.blit(box, (0, H - BOX_H))
-        y = H - BOX_H + 20
-        if speaker:
-            self.screen.blit(self.font.render(speaker, True, GOLD), (40, y))
-            y += 40
+        pygame.draw.line(self.screen, CHAPTER_LABEL, (0, H - BOX_H), (W, H - BOX_H), 1)   # thin gold edge
+        y = H - BOX_H + 18
+        if speaker:   # name colour from "speaker_colours" in story.json ("Claire (thinking)" uses Claire's)
+            colours = self.story.get("speaker_colours", {})
+            colour = colours.get(speaker) or colours.get(speaker.split(" (")[0]) or colours.get("default") or GOLD
+            self.screen.blit(self.name_font.render(speaker, True, colour), (40, y))
+            y += self.name_font.get_linesize() + 4
+        full = shown >= len(text)
         for line in wrap(self.font, text, W - 80):   # typewriter: only `shown` letters
             if shown <= 0:
                 break
             self.screen.blit(self.font.render(line[:shown], True, WHITE), (40, y))
             shown -= len(line) + 1
-            y += 34
+            y += self.font.get_linesize()
+        if full and self.mode == "story" and self.step.get("type") == "text" and not self.fade:
+            bob = int(4 * math.sin(pygame.time.get_ticks() / 180))   # "click to continue" arrow
+            x, y = W - 48, H - 34 + bob
+            pygame.draw.polygon(self.screen, CHAPTER_LABEL, [(x - 9, y - 6), (x + 9, y - 6), (x, y + 6)])
 
     def draw_cutscene(self):
         slides, fade, t = self.step["slides"], self.step.get("fade", 1.0), self.timer
@@ -410,8 +608,9 @@ class Game:
         imgs = []
         for k, v in self.stats.items():   # a stat that just changed turns green/red
             changed = [d for s, d, _ in self.popups if s == k]
-            colour = (GREEN if changed[-1] > 0 else RED) if changed else WHITE
-            imgs.append(self.font.render(f"{k}: {v}", True, colour))
+            warn = self.story.get("stat_warning", {}).get(k)   # e.g. {"Time": 3}: red at 3 or less
+            colour = (GREEN if changed[-1] > 0 else RED) if changed else (RED if warn is not None and v <= warn else WHITE)
+            imgs.append(self.stats_font.render(f"{k}: {v}", True, colour))
         width = sum(i.get_width() for i in imgs) + 30 * (len(imgs) - 1)
         pygame.draw.rect(self.screen, BLACK, pygame.Rect(20, 20, width, imgs[0].get_height()).inflate(20, 12))
         x = 20
@@ -419,12 +618,21 @@ class Game:
             self.screen.blit(img, (x, 20))
             x += img.get_width() + 30
         for i, (stat, delta, age) in enumerate(self.popups):   # "+1 Reputation" floating up
-            img = self.big.render(f"{delta:+d} {stat}", True, GREEN if delta > 0 else RED)
+            img = self.popup_font.render(f"{delta:+d} {stat}", True, GREEN if delta > 0 else RED)
             img.set_alpha(max(0, 255 - int(age * 127)))
             self.screen.blit(img, (30, 60 + i * 60 - int(age * 25)))
 
-    def sprite_image(self, pos):
+    def shown_sprite(self, pos):
+        """The sprite file actually drawn. "low_health_sprite" in story.json can swap it
+        when a stat is low (e.g. a hurt goat when Time is 3 or less)."""
         name = self.sprites[pos]
+        rule = self.story.get("low_health_sprite")
+        if rule and self.stats.get(rule["stat"], 10**9) <= rule["at_or_below"]:
+            name = rule["swap"].get(name, name)
+        return name
+
+    def sprite_image(self, pos):
+        name = self.shown_sprite(pos)
         img = self.assets.image("sprites", name, SPRITE_SIZE)
         if self.talking and pos != self.talking:   # dim whoever isn't speaking
             if name not in self.dim_cache:
@@ -438,7 +646,8 @@ class Game:
         if self.mode in ("title", "about") and self.story.get("title_bg"):
             self.screen.blit(self.assets.image("bg", self.story["title_bg"], (W, H), True), (0, 0))
         if self.mode == "title":
-            self.draw_title_text(self.story.get("title", ""), (86, 70))
+            self.draw_title_text((70, TITLE_TOP))
+            self.draw_endings_found()
             for b in self.title_buttons:
                 b.draw(self.screen, self.menu_font, menu=True)
         elif self.mode == "about":
@@ -451,8 +660,15 @@ class Game:
             kind = self.step["type"]
             if kind == "cutscene":
                 self.draw_cutscene()
+            elif kind == "chapter" and self.story.get("chapter_bg"):
+                self.draw_chapter_card(self.step.get("text", ""))
             elif kind in ("chapter", "end"):
-                self.text_center(self.step.get("text", ""), self.big, H // 2 - (90 if kind == "end" else 0))
+                if kind == "end" and self.bg:   # keep the ending's CG on screen, darkened so the text reads
+                    self.screen.blit(self.assets.image("bg", self.bg, (W, H), True), (0, 0))
+                    veil = pygame.Surface((W, H), pygame.SRCALPHA)
+                    veil.fill((0, 0, 0, END_VEIL))
+                    self.screen.blit(veil, (0, 0))
+                self.text_center(self.step.get("text", ""), self.big, H // 2 - (90 if kind == "end" else 0), CHAPTER_TEXT)
                 if kind == "end" and self.step.get("hint"):   # small hint line under GAME OVER
                     self.text_center(self.step["hint"], self.menu_font, H // 2 + 45, GOLD)
             else:   # text / choice
@@ -470,7 +686,7 @@ class Game:
                     self.draw_stats()
             if kind in ("choice", "end"):
                 for b in self.buttons:
-                    b.draw(self.screen, self.font)
+                    b.draw(self.screen, self.menu_font if kind == "end" else self.choice_font, menu=(kind == "end"))
             if self.flash:
                 overlay = pygame.Surface((W, H))
                 overlay.fill(self.flash[0])
@@ -481,7 +697,11 @@ class Game:
                 self.screen.fill(BLACK)
                 px = max(1, round(SHAKE_PIXELS * self.shake / SHAKE_TIME))   # fades out
                 self.screen.blit(frame, (random.randint(-px, px), random.randint(-px, px)))
-        if self.fade:   # first half: old frame darkens, second half: new frame appears
+        if self.fade and self.fade_dissolve:   # old frame melts away over the new one
+            self.fade_from.set_alpha(int(255 * self.fade / DISSOLVE_TIME))
+            self.screen.blit(self.fade_from, (0, 0))
+            self.fade_from.set_alpha(None)
+        elif self.fade:   # first half: old frame darkens, second half: new frame appears
             t = 1 - self.fade / FADE_TIME
             if t < 0.5:
                 self.screen.blit(self.fade_from, (0, 0))

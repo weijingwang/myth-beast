@@ -24,7 +24,7 @@ Search story.json for `ART:`, `MUSIC:`, `SFX:` and `TODO:` to find every placeho
 | `bg/ending_normal.png`, `bg/ending_true.png`, `bg/game_over_goat.png`, `bg/game_over_rep.png` | placeholder | Endings and deaths |
 | `sprites/claire_neutral / happy / laugh / wtf / frustrated / car_crash.png` | **yours** | Claire (left) |
 | `sprites/excelsior_norm / slant / front / front_fire.png` | **yours** | Goat (right): norm = default, slant = about to do something dumb, front = the payoff (reveal stare, prince headbutt, spa door), front_fire = on fire |
-| `music/20260924 - gtr.mp3` | **yours** | Title and all chapters for now (search `MUSIC: TODO`) |
+| `music/` gtr, band, bwv997g, osdyspdup (mp3), apex-Pyweek.ogg | **yours** | Mostly one track per chapter: gtr = default, band = Claire bragging, the Prince's entrance and the true ending, bwv997g = tea party and Grand Ball chapters, apex = spa break-in, osdyspdup = bonfire climax (at 55% volume). The .m4a original isn't used: pygame can't play .m4a. |
 | `sfx/*.wav` | placeholder | door_burst, bonk, crash, fire, knock, charge, applause, scream, whoosh, splash |
 
 The other characters (knights, doctor, friends, servant, maid, prince, nobles) are name-only, with no sprite. Stats start at Time 4 and Reputation 4. A stat reaching 0 ends the game, and 6 of the 16 paths survive. Change `"stats"` to rebalance.
@@ -37,7 +37,13 @@ The other characters (knights, doctor, friends, servant, maid, prince, nobles) a
 - **Fast-forward:** hold Tab or Ctrl to zip through text (stops at choices).
 - **Speaker focus:** sprites of characters who are not talking dim. This works by name: a sprite file must start with the speaker's name without spaces ("Friend 1" → `friend1.png`, "Knight 2" → `knight.png`, "Claire (thinking)" → `claire_*.png`).
 - **Stat popups:** after a choice, "+1 Time / −1 Reputation" floats up and the changed stats turn green or red.
-- **Fades:** the screen fades through black on chapter cards, cutscenes, endings, any background change, starting a game and returning to the title. Clicks are ignored mid-fade. Put `"fade": true` on a step to force one (for example the script's `[FADE OUT.]`), or `"fade": false` to turn one off. Length: `FADE_TIME` at the top of main.py.
+- **Fades:** the screen fades through black on chapter cards, cutscenes, endings, any background change, starting a game and returning to the title (`FADE_TIME`). Clicks are ignored mid-fade. On a step, `"fade": "dissolve"` melts the old picture straight into the new one instead (used when the bonfire dies down; `DISSOLVE_TIME`), `"fade": true` forces a black fade and `"fade": false` turns it off.
+- **Retry chapter:** Game Over screens get a "Retry Chapter N" button that restarts the chapter you died in, with Time and Reputation as they were when it began. `"retry_on"` in story.json: `"deaths"` (default), `"all"` (also after the normal/true endings) or `"none"`.
+- **Endings found:** the title screen lists every ending, showing ??? until the player has seen it. Saved in `endings_found_story.json` (git-ignored); delete it to reset.
+- **Comic timing:** typing pauses briefly after `.` `!` `?` `…` and `,` (`PUNCTUATION_PAUSE` at the top of main.py; `{}` turns it off).
+- **Button sounds:** `"ui_sounds": {"hover": "CLICK_SMALL.ogg", "click": "CLICK.ogg"}` in story.json (files in `assets/sfx/`). They play on buttons only, never on the click that advances text.
+- **Window icon:** `"icon": "icon.png"` in story.json loads `assets/icon.png` (square PNG, 256×256, transparent background).
+- **Click-to-continue arrow:** a small gold ▼ bobs in the text box once a line has finished typing.
 - **Shake and flash:** a step that plays a sound in `SHAKE_SFX` gives a small shake (`SHAKE_PIXELS`, `SHAKE_TIME`), and `fire.wav` flashes orange (both lists are at the top of main.py). Any step can also say `"shake": true` or `"flash": [255, 255, 255]` itself.
 
 ## Tutorial: learn it by playing (tutorial.json)
@@ -66,6 +72,13 @@ The other characters (knights, doctor, friends, servant, maid, prince, nobles) a
 |---|---|
 | `title` | Window title and title-screen text |
 | `about` | About-screen text (`\n` = new line) |
+| `title_logo` | Optional. The title split into lines, each with a `size`; `"accent": true` makes a line the royal indigo of the big words. Without it, `title` is shown as one line. |
+| `title_bg` | Title screen background image, from `assets/bg/` |
+| `music_volume` | Optional per-track volume from 0 to 1, e.g. `{"2026092423_osdyspdup.mp3": 0.55}`. Tracks not listed play at full volume. |
+| `stat_warning` | Optional. Shows a stat in red when it's at or below a level, e.g. `{"Time": 3}`. |
+| `low_health_sprite` | Optional, currently unused. Swaps a sprite while a stat is low, e.g. `{"stat": "Time", "at_or_below": 3, "swap": {"excelsior_norm.png": "excelsior_hurt.png"}}`. |
+| `chapter_bg` | Optional. Image behind every `chapter` card (from `assets/bg/`). The first line of a card's text is drawn as small gold capitals, the rest as the large chapter name. End screens are not affected. |
+| `speaker_colours` | Optional name colours in the text box, e.g. `{"Claire": [244, 168, 190]}`. `Claire (thinking)` uses Claire's colour; `"default"` colours everyone not listed. |
 | `title_music` | Music on the title screen (optional) |
 | `show_stats` | `true` shows stats top-left, `false` hides them |
 | `stats` | Stat names and starting values. The names are shown exactly as written. |
@@ -112,7 +125,7 @@ After a click, the stats change and the flag is remembered.
   {"image": "intro1.png", "duration": 3}
 ]}
 ```
-Plays by itself. `fade` is the crossfade in seconds. A click skips the whole cutscene. Images come from `assets/cutscenes/`.
+Plays by itself. `fade` is the crossfade in seconds. A click moves to the next slide (on the last slide it ends the cutscene); holding Tab or Ctrl skips it. Images come from `assets/cutscenes/`.
 
 ```json
 {"type": "branch", "rules": [
