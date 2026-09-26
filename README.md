@@ -79,6 +79,8 @@ The other characters (knights, doctor, friends, servant, maid, prince, nobles) a
 | `low_health_sprite` | Optional, currently unused. Swaps a sprite while a stat is low, e.g. `{"stat": "Time", "at_or_below": 3, "swap": {"excelsior_norm.png": "excelsior_hurt.png"}}`. |
 | `chapter_bg` | Optional. Image behind every `chapter` card (from `assets/bg/`). The first line of a card's text is drawn as small gold capitals, the rest as the large chapter name. End screens are not affected. |
 | `speaker_colours` | Optional name colours in the text box, e.g. `{"Claire": [244, 168, 190]}`. `Claire (thinking)` uses Claire's colour; `"default"` colours everyone not listed. |
+| `sfx_volume` | Optional per-sound volume from 0 to 1, e.g. `{"goatsfx_beeeeeeh.ogg": 0.6}`. Sounds not listed play at full volume. |
+| `secret_video` | Optional reward. `{"unlock": "Borrowed Time", "frames": "video/goat_vid", "audio": "video/goat_vid.ogg", "fps": 20, "button": "icon.png"}`: once the named ending is found, a small button appears bottom-right on the title screen and plays the video (a folder of numbered frames plus an audio file). To make frames from a new clip: `ffmpeg -i clip.mov -an -vf "fps=20,scale=-2:720" -q:v 5 assets/video/NAME/%03d.jpg` and `ffmpeg -i clip.mov -vn -c:a libvorbis assets/video/NAME.ogg`. |
 | `title_music` | Music on the title screen (optional) |
 | `show_stats` | `true` shows stats top-left, `false` hides them |
 | `stats` | Stat names and starting values. The names are shown exactly as written. |

@@ -97,6 +97,7 @@ class Assets:
         self.images, self.sounds = {}, {}
         self.music = None
         self.volumes = {}   # per-track music volume (0..1), from "music_volume" in story.json
+        self.sfx_volumes = {}   # per-sound volume (0..1), from "sfx_volume" in story.json
         try:
             pygame.mixer.init()
             self.audio = True
@@ -126,6 +127,7 @@ class Assets:
         if name not in self.sounds:
             try:
                 self.sounds[name] = pygame.mixer.Sound(os.path.join(ASSETS, "sfx", name))
+                self.sounds[name].set_volume(self.sfx_volumes.get(name, 1.0))
             except (pygame.error, FileNotFoundError):
                 print(f"WARNING: missing sound assets/sfx/{name}")
                 self.sounds[name] = None
@@ -243,6 +245,7 @@ class Game:
         self.popup_font = pygame.font.SysFont(MENU_FONT, 44, bold=True)  # "+1 Time" popups
         self.assets = Assets(self.font)
         self.assets.volumes = self.story.get("music_volume", {})
+        self.assets.sfx_volumes = self.story.get("sfx_volume", {})
         self.clock = pygame.time.Clock()
         self.menu_font = pygame.font.SysFont(MENU_FONT, 30)
         self.chapter_font = pygame.font.SysFont(MENU_FONT, 62)
@@ -265,6 +268,9 @@ class Game:
         self.back_button = Button("Back", (W // 2, MENU_Y), w, 44)
         self.dim_cache = {}
         self.checkpoint, self.buttons, self.step, self.pending_sfx = None, [], {"type": "none"}, []
+        self.video = None   # the secret video while it plays
+        self.secret = self.story.get("secret_video")   # unlocked by an ending, see story.json
+        self.secret_button = Button("", (W - 64, H - 58), 76, 76)
         self.fade, self.fade_from, self.fade_dissolve, self.prev_kind = 0.0, None, False, None
         self.go_title()
 
@@ -420,9 +426,15 @@ class Game:
             return
         if any(b.clicked(event) for b in self.visible_buttons()):
             self.ui_sound("click")
+        if self.mode == "video":   # any click or key skips the video
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.KEYDOWN):
+                self.end_video()
+            return
         if self.mode == "title":
             start, about, quit_ = self.title_buttons
-            if start.clicked(event):
+            if self.secret_unlocked() and self.secret_button.clicked(event):
+                self.start_video()
+            elif start.clicked(event):
                 self.new_game()
             elif about.clicked(event):
                 self.mode = "about"
@@ -466,9 +478,48 @@ class Game:
             cross = end - fade
             self.timer = cross if self.timer < cross else end
 
+    def secret_unlocked(self):
+        return bool(self.secret) and self.secret.get("unlock") in self.endings_found
+
+    def start_video(self):
+        """Secret video: a folder of numbered frames played in sync with an audio file."""
+        folder = os.path.join(ASSETS, self.secret["frames"])
+        frames = sorted(f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".png")))
+        sound = None
+        if self.assets.audio and self.secret.get("audio"):
+            try:
+                sound = pygame.mixer.Sound(os.path.join(ASSETS, self.secret["audio"]))
+            except (pygame.error, FileNotFoundError):
+                print("WARNING: missing video audio")
+        self.assets.play_music(None)   # silence the title music while it plays
+        self.video = {"frames": [os.path.join(folder, f) for f in frames], "cache": {},
+                      "fps": self.secret.get("fps", 20), "t": 0.0, "sound": sound}
+        if sound:
+            sound.play()
+        self.start_fade()
+        self.mode = "video"
+
+    def end_video(self):
+        if self.video and self.video["sound"]:
+            self.video["sound"].stop()
+        self.video = None
+        self.go_title()   # fades back and restarts the title music
+
+    def draw_video(self):
+        v = self.video
+        i = min(int(v["t"] * v["fps"]), len(v["frames"]) - 1)
+        if i not in v["cache"]:   # load frames as they're needed so starting is instant
+            v["cache"][i] = pygame.image.load(v["frames"][i]).convert()
+        img = v["cache"][i]
+        if img.get_height() != H:
+            img = pygame.transform.smoothscale(img, (img.get_width() * H // img.get_height(), H))
+        self.screen.blit(img, img.get_rect(center=(W // 2, H // 2)))
+
     def visible_buttons(self):
         if self.mode == "title":
-            return self.title_buttons
+            return self.title_buttons + ([self.secret_button] if self.secret_unlocked() else [])
+        if self.mode == "video":
+            return []
         if self.mode == "about":
             return [self.back_button]
         return self.buttons if self.step["type"] in ("choice", "end") else []
@@ -493,6 +544,11 @@ class Game:
             if pending[0] <= 0:
                 self.play_sfx(pending[1])
         self.pending_sfx = [p for p in self.pending_sfx if p[0] > 0]
+        if self.mode == "video":
+            self.video["t"] += dt
+            if self.video["t"] >= len(self.video["frames"]) / self.video["fps"] + 0.3:
+                self.end_video()
+            return
         mouse = pygame.mouse.get_pos()
         over = next((b for b in self.visible_buttons() if b.rect.collidepoint(mouse)), None)
         if over is not self.hovered and over is not None and not self.fade:
@@ -666,9 +722,17 @@ class Game:
         self.screen.fill(BLACK)
         if self.mode in ("title", "about") and self.story.get("title_bg"):
             self.screen.blit(self.assets.image("bg", self.story["title_bg"], (W, H), True), (0, 0))
-        if self.mode == "title":
+        if self.mode == "video":
+            self.draw_video()
+        elif self.mode == "title":
             self.draw_title_text((70, TITLE_TOP))
             self.draw_endings_found()
+            if self.secret_unlocked():   # the reward for the true ending: a little goat in the corner
+                hover = self.secret_button.rect.collidepoint(pygame.mouse.get_pos())
+                size = 76 if hover else 64
+                img = pygame.transform.smoothscale(
+                    self.assets.image("", self.secret.get("button", "icon.png"), (64, 64)), (size, size))
+                self.screen.blit(img, img.get_rect(center=self.secret_button.rect.center))
             for b in self.title_buttons:
                 b.draw(self.screen, self.menu_font, menu=True)
         elif self.mode == "about":
@@ -703,7 +767,8 @@ class Game:
                     self.draw_box(self.step.get("speaker"), self.step["text"], int(self.typed))
                 elif self.step.get("text"):
                     self.draw_box(None, self.step["text"])
-                if self.story.get("show_stats"):
+                ending = any(st["type"] == "end" for st in self.story["scenes"][self.scene])
+                if self.story.get("show_stats") and not ending:   # no stats over the ending art
                     self.draw_stats()
             if kind in ("choice", "end"):
                 for b in self.buttons:
