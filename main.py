@@ -15,7 +15,23 @@ SPRITE_X = {"left": 0.2, "middle": 0.5, "right": 0.8}
 STEP_TYPES = {"text", "chapter", "choice", "cutscene", "branch", "end"}
 WHITE, BLACK, GOLD = (255, 255, 255), (0, 0, 0), (255, 220, 120)
 GREEN, RED = (120, 255, 120), (255, 110, 110)
-HERE = os.path.dirname(os.path.abspath(__file__))
+FROZEN = getattr(sys, "frozen", False)   # True inside the packaged Mac app / Windows exe
+HERE = sys._MEIPASS if FROZEN else os.path.dirname(os.path.abspath(__file__))
+
+
+def save_dir():
+    """Where endings_found_*.json is kept: next to main.py, or a user folder in the packaged app."""
+    if not FROZEN:
+        return HERE
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    path = os.path.join(base, "MythicalBeast")
+    os.makedirs(path, exist_ok=True)
+    return path
 ASSETS = os.path.join(HERE, "assets")
 
 # ---- game feel. Tweak freely.
@@ -227,7 +243,7 @@ class Game:
                 print(f"WARNING: missing icon assets/{self.story['icon']}")
         self.screen = pygame.display.set_mode((W, H), pygame.SCALED | pygame.RESIZABLE)  # maximise button; scales and letterboxes, mouse coords stay 1280x720
         # endings the player has seen, remembered between sessions (one file per story file)
-        self.endings_file = os.path.join(HERE, "endings_found_" + os.path.splitext(story_file)[0] + ".json")
+        self.endings_file = os.path.join(save_dir(), "endings_found_" + os.path.splitext(story_file)[0] + ".json")
         self.all_endings = [ending_name(st) for steps in self.story["scenes"].values()
                             for st in steps if st["type"] == "end"]
         try:

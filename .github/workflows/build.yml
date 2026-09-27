@@ -1,0 +1,67 @@
+# Builds the Mac app and Windows exe on GitHub's machines.
+# Run it by hand: GitHub > Actions > "Build game" > Run workflow  (zips appear under "Artifacts")
+# Or push a tag like v1.0.0: the zips are also attached to that GitHub Release.
+name: Build game
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            zip: MythicalBeast-windows.zip
+          - os: macos-latest          # Apple Silicon (M1 and newer)
+            zip: MythicalBeast-mac-apple-silicon.zip
+          - os: macos-15-intel        # older Intel Macs
+            zip: MythicalBeast-mac-intel.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r requirements.txt pyinstaller pillow
+
+      - name: Package
+        run: >
+          pyinstaller --noconfirm --windowed --name MythicalBeast
+          --icon assets/icon.png
+          --add-data "assets:assets" --add-data "story.json:."
+          main.py
+
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item README.md, credits.rtf dist/MythicalBeast/
+          Compress-Archive -Path dist/MythicalBeast -DestinationPath ${{ matrix.zip }}
+
+      - name: Zip (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir MythicalBeast
+          cp -R dist/MythicalBeast.app README.md credits.rtf MythicalBeast/
+          ditto -c -k --keepParent MythicalBeast ${{ matrix.zip }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.zip }}
+          path: ${{ matrix.zip }}
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.zip }}
